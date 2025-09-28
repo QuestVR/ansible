@@ -1,0 +1,15 @@
+- hosts: test
+  become: yes
+
+  vars:
+    username: "marsik"
+    email: "marsik@h.ru"
+    user_password_plain: "12345"
+
+  pre_tasks:
+    - name: Хэш пароля (SHA-512)
+      ansible.builtin.set_fact:
+        user_password_hash: "{{ user_password_plain | password_hash('sha512') }}"
+  roles:
+  - role: testrole
+
