@@ -1,0 +1,48 @@
+- hosts: test
+  become: yes
+  roles:
+  - role: geerlingguy.git
+    vars:
+      git_version: "2.26.0"
+    tags: [git]
+  - role: geerlingguy.postgresql
+    vars:
+      postgresql_user: postgres
+    tags: [postgres]  
+  - role: geerlingguy.nodejs
+    vars:
+      nodejs_version: "16.x"
+    tags: [nodejs] 
+
+  tasks:
+    - name: ssh generate for each user
+      community.crypto.openssh_keypair:
+        path: "/home/{{ item.username }}/.ssh/id_ed25519"
+        type: ed25519
+        owner: "{{ item.username }}" 
+        mode: '0600'
+      loop: "{{ sshkeys }}"
+      tags: [ssh]
+      
+    - name: ssh pub key copy
+      ansible.builtin.slurp:
+        src: "/home/{{ item.username }}/.ssh/id_ed25519.pub"
+      register: pubkeys
+      loop: "{{ sshkeys }}"
+      tags: [ssh]
+      
+    - name: save keys locally
+      delegate_to: localhost
+      ansible.builtin.copy:
+        content: "{{ item.content | b64decode }}"
+        dest: "./keys/{{ item.item.username }}.pub"
+      loop: "{{ pubkeys.results }}"
+      tags: [ssh]
+      
+    - name: update ssh key
+      ansible.posix.authorized_key:
+        user: "{{ item.username }}"
+        state: present
+        key: "{{ lookup('file', 'keys/' + item.username + '.pub') }}"
+      loop: "{{ sshkeys }}"
+      tags: [ssh]

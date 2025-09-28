@@ -1,0 +1,8 @@
+:q
+[user]
+  name = {{ username }}
+  email = {{ useremail }}
+
+[core]
+  editor = vim
+
