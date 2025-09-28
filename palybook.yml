@@ -1,0 +1,57 @@
+- hosts: all
+  become: yes
+  gather_facts: yes
+  vars:
+    users:
+      - { username: jaime,  email: jaimee@s.com }
+      - { username: sansa,  email: sansa@s.com }
+      - { username: robert, email: robert@s.com }
+
+  tasks:
+    - name: Ensure users exist (with home)
+      ansible.builtin.user:
+        name: "{{ item.username }}"
+        state: present
+        create_home: yes
+        shell: /bin/bash
+      loop: "{{ users }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure ~/.ssh exists
+      ansible.builtin.file:
+        path: "/home/{{ item.username }}/.ssh"
+        state: directory
+        owner: "{{ item.username }}"
+        group: "{{ item.username }}"
+        mode: '0700'
+      loop: "{{ users }}"   
+
+    - name: Deploy per-user .gitconfig
+      ansible.builtin.template:
+        src: files/.gitconfig.j2
+        dest: "/home/{{ item.username }}/.gitconfig"
+        owner: "{{ item.username }}"
+        group: "{{ item.username }}"
+        mode: '0644'
+      loop: "{{ users }}"
+      vars:
+        user:
+          name:  "{{ item.username }}"
+          email: "{{ item.email }}"
+    - name: ssh generate for each user
+      community.crypto.openssh_keypair:
+        path: "/home/{{ item.username }}/.ssh/id_ed25519"
+        type: ed25519
+        owner: "{{ item.username }}" 
+        mode: '0600'
+      loop: "{{ users }}"
+      become: yes
+      register: keypairs
+    - name: Authorize the new public key for SSH
+      ansible.posix.authorized_key:
+        user: "{{ item.item.username }}"
+        state: present
+        key: "{{ item.public_key }}"
+      loop: "{{ keypairs.results }}"
+      become: yes
+

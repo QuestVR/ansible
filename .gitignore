@@ -1,0 +1,12 @@
+*.retry
+*.swp
+*.swo
+__pycache__/
+*.pyc
+.env
+.vscode/
+.idea/
+.venv/
+*.pem
+.vault_pass.txt
+inventories/**/group_vars/**/secrets*.yml

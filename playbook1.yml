@@ -1,0 +1,55 @@
+- hosts: test
+  gather_facts: yes
+  vars:
+    nginx_port: 80
+    root_dir: /usr/share/nginx/html
+  tasks:
+    - name: install nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+      become: yes
+      tags: [nginx]
+
+    - name: install cowsay plugin
+      ansible.builtin.apt: 
+        name: cowsay
+        state: present
+      when: ansible_os_family == "Debian"
+      become: yes
+
+    - name: cowsay
+      ansible.builtin.shell: cowsay "This is server {{ server_name }}!"
+      register: say 
+
+    - name: tamplate index.html
+      ansible.builtin.template:
+        src: files/index.html.j2
+        dest: "{{root_dir}}/index.html"
+        owner: marsel
+        mode: '777'
+      vars:
+        sayc: "{{ say.stdout }}"
+      notify:
+        - restart nginx
+      become: yes
+      tags: [conf]
+    - name: copy tempalte nginx.conf
+      ansible.builtin.template:
+        src: files/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        owner: marsel
+        mode: '777'
+      notify:
+        - restart nginx
+      become: yes
+      tags: [conf]
+
+
+
+  handlers:
+   - name: restart nginx
+     ansible.builtin.service:
+       name: nginx
+       state: reloaded
+     become: yes
