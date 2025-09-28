@@ -1,0 +1,30 @@
+- hosts: all
+  become: yes
+  roles:
+    - role: geerlingguy.git
+      vars:
+        git_version: "2.26.0"
+    - role: geerlingguy.postgresql
+      vars:
+        postgresql_user: postgres  
+    - role: geerlingguy.nodejs
+      vars:
+        nodejs_version: "16.x"
+
+  tasks:
+    - name: check installed roles
+      ansible.builtin.shell: |
+        for cmd in git psql node npm; do
+          if command -v "$cmd" >/dev/null 2>&1; then
+            ver="$($cmd --version | head -n1)"
+            echo "OK  $cmd: $ver"
+          else
+            echo "NO  $cmd: not found"
+          fi
+        done
+      args:
+        executable: /bin/bash
+      register: check
+    - name: stdout register
+      ansible.builtin.debug:
+        msg: "{{ check.stdout_lines }}"

@@ -1,0 +1,4 @@
+ansible-galaxy install geerlingguy.git
+ansible-galaxy install geerlingguy.postgresql
+ansible-galaxy install geerlingguy.nodejs
+
